@@ -1,18 +1,27 @@
 import axios from 'axios';
 import config from '../config/config';
 import constants from '../constant/constant';
+import { getItemFromLocalStorage } from './storege';
 
+const timeoutMilliseconds = 10 * 60 * 1000; // 10 minutes
+const baseURL = `${config.app.baseUrl}/v1`;
 
-const axiosInstance = axios.create({
-  baseURL: `${config.app.baseUrl}/v1`,
+let axiosInstance = axios.create({
+  baseURL: baseURL,
+  timeout:timeoutMilliseconds,
+  headers: {
+    'Content-Type': 'application/json',
+    // Add any other default headers here
+  },
 });
 
-axiosInstance.interceptors.request.use((req:any) => {
-  const token = localStorage.getItem(constants.access_token);
+axiosInstance.interceptors.request.use(async (req:any) => {
+  const token = await getItemFromLocalStorage(constants.access_token);
   req.headers.Authorization = `Bearer ${token}`;
   return req;
 });
+
 export const login = async (data:any) => {
-  const res = await axiosInstance.post(`/basic/login`,data);
+  const res = await axiosInstance.post(`/login/basic`,data);
   return res && res.data ? res.data : null;
 };

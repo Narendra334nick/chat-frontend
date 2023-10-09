@@ -3,10 +3,12 @@ import styles from "./login.module.css";
 import useAuthService from "../../hooks/useAuthService";
 import { useNavigate } from "react-router-dom";
 import { login } from "../../services/apiServices";
-import axios from "axios";
+
 import { withFormik } from "formik";
 import * as Yup from "yup";
 import InputTextField from "../../components/inputTextField";
+import { saveToLocalStore } from "../../services/storege";
+import constants from "../../constant/constant";
 
 export default function LoginComponent(props: any) {
 	return (
@@ -23,7 +25,7 @@ const loginForm = (props: any) => {
 		errors,
 		handleChange,
 		setFieldTouched,
-		setFieldValue,
+		//setFieldValue,
 		handleSubmit,
 	} = props;
 	const change = (
@@ -76,6 +78,8 @@ const loginForm = (props: any) => {
 };
 
 const FormikHoc = (props: any) => {
+  const navigate = useNavigate();
+  const authService = useAuthService();
 	const LoginFormikLogin = withFormik({
 		mapPropsToValues: () => ({
 			username: undefined,
@@ -94,7 +98,11 @@ const FormikHoc = (props: any) => {
 					password: values.password,
 				};
 				const user = await login(payload);
-        console.log("user",user);
+        if(user?.data?.[0]?.accessToken){
+          await saveToLocalStore(constants.access_token,user?.data?.[0]?.accessToken);
+          authService.setUserDetails(true);
+          navigate('/chat')
+        }
 			} catch (error) {
         console.log('Error in handle submit',error);
       }
