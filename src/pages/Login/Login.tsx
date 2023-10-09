@@ -4,46 +4,103 @@ import useAuthService from "../../hooks/useAuthService";
 import { useNavigate } from "react-router-dom";
 import { login } from "../../services/apiServices";
 import axios from "axios";
+import { withFormik } from "formik";
+import * as Yup from "yup";
+import InputTextField from "../../components/inputTextField";
 
-function Login() {
-	const navigate = useNavigate();
-	const authService = useAuthService();
-	const handleSubmit = async (event: any) => {
-		try {
-			event.preventDefault();
-			const payload = {
-				email: "recs.cse1626@gmail.com",
-				password: "Nerd@0604",
-			};
-			//const user = await login(payload);
-			const user = await axios({
-				method: "post",
-				url: "http://localhost:8086/v1/login/basic",
-				data: payload,
-			});
-			console.log("user", user);
-			authService.setUserDetails(true);
-			navigate("/chat");
-		} catch (error) {
-			console.log("error in handle submit", error);
-		}
-	};
+export default function LoginComponent(props: any) {
 	return (
-		<div className={styles.mainBackground}>
-			<div className={styles.background}></div>
-			<form onSubmit={handleSubmit}>
-				<h3>Login Here</h3>
-
-				<label htmlFor="username">Username</label>
-				<input type="text" placeholder="Email or Phone" id="username" />
-
-				<label htmlFor="password">Password</label>
-				<input type="password" placeholder="Password" id="password" />
-
-				<button type="submit">Log In</button>
-			</form>
+		<div>
+			<FormikHoc {...props} />
 		</div>
 	);
 }
 
-export default Login;
+const loginForm = (props: any) => {
+	const {
+		values,
+		touched,
+		errors,
+		handleChange,
+		setFieldTouched,
+		setFieldValue,
+		handleSubmit,
+	} = props;
+	const change = (
+		name: any,
+		e: React.ChangeEvent<HTMLInputElement>,
+		index: any
+	) => {
+		e.persist();
+		handleChange(e);
+		setFieldTouched(name, true, false);
+	};
+
+	// const handleGeneralChange = (value: any, id: any) => {
+	// 	setFieldValue(id, value);
+	// 	setFieldTouched(id, true, false);
+	// };
+
+	return (
+		<>
+			<div className={styles.mainBackground}>
+				<div className={styles.background}></div>
+				<form onSubmit={handleSubmit}>
+					<h3>Login Here</h3>
+					<InputTextField
+						value={values?.username}
+						placeHolder="user name"
+						onChnage={change.bind(null, "username")}
+						label="Username"
+						name="username"
+						touched={touched.username}
+						errors={errors.username}
+					/>
+
+					<InputTextField
+						value={values?.password}
+						placeHolder="password"
+						onChnage={change.bind(null, "password")}
+						label="Password"
+						type="password"
+						name="password"
+						touched={touched.password}
+						errors={errors.password}
+					/>
+
+					<button type="submit">Log In</button>
+				</form>
+			</div>
+		</>
+	);
+};
+
+const FormikHoc = (props: any) => {
+	const LoginFormikLogin = withFormik({
+		mapPropsToValues: () => ({
+			username: undefined,
+			password: undefined,
+		}),
+
+		// Custom sync validation
+		validationSchema: Yup.object({
+			username: Yup.string().required(),
+			password: Yup.string().required(),
+		}),
+		handleSubmit: async (values: any) => {
+			try {
+				const payload = {
+					email: values.username,
+					password: values.password,
+				};
+				const user = await login(payload);
+        console.log("user",user);
+			} catch (error) {
+        console.log('Error in handle submit',error);
+      }
+		},
+		displayName: "loginForm",
+	})(loginForm);
+
+	return <LoginFormikLogin {...props} />;
+};
