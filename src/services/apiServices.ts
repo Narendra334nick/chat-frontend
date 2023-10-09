@@ -25,3 +25,8 @@ export const login = async (data:any) => {
   const res = await axiosInstance.post(`/login/basic`,data);
   return res && res.data ? res.data : null;
 };
+
+export const getGroups = async () => {
+  const res = await axiosInstance.get(`/groups`);
+  return res && res.data ? res.data : null;
+};

@@ -100,7 +100,8 @@ const FormikHoc = (props: any) => {
 				const user = await login(payload);
         if(user?.data?.[0]?.accessToken){
           await saveToLocalStore(constants.access_token,user?.data?.[0]?.accessToken);
-          authService.setUserDetails(true);
+          authService.setIsLoggedIn(true);
+          authService.setUserDetails(user?.data?.[0]);
           navigate('/chat')
         }
 			} catch (error) {
