@@ -2,22 +2,38 @@ import React from "react";
 import styles from "./chatLayout.module.css";
 import GroupChat from "./components/groupCard";
 import useAuthService from "../../hooks/useAuthService";
-import { getGroups } from "../../services/apiServices";
+import { getGroups, getGroupsMessages } from "../../services/apiServices";
 import { useNavigate } from "react-router-dom";
+import { Socket } from "socket.io-client";
+import socket from "../../socket";
+import moment from "moment";
+import AddIcon from "@mui/icons-material/Add";
+import Modal from "../../components/modal/modal";
 
 function ChatLayout(props: any) {
 	const user = useAuthService().userDetails;
-  const navigate = useNavigate();
-  const [group,setGroups] = React.useState<any>([]);
-  const [activeGroup,setActiveGroup] = React.useState<any>();
+	const navigate = useNavigate();
+	const [group, setGroups] = React.useState<any>([]);
+	const [activeGroup, setActiveGroup] = React.useState<any>();
+	const [message, setMessage] = React.useState<any>();
+	const [groupMessage, setGroupsMessage] = React.useState<any>([]);
+	const customSocket = React.useRef<Socket | undefined>();
+
+	// states and functions for modal
+	const [open, setOpen] = React.useState(false);
+	const handleOpen = () => setOpen(true);
+	const handleClose = () => setOpen(false);
+
+	// console.log('activeGr',activeGroup);
+	// console.log('grouMsg',groupMessage);
 
 	const groupData = async () => {
 		try {
 			const data = await getGroups();
-      if(data?.data?.length){
-        setGroups(data?.data);
-        setActiveGroup(data?.data[0]);
-      }
+			if (data?.data?.length) {
+				setGroups(data?.data);
+				setActiveGroup(data?.data[0]);
+			}
 		} catch (error) {
 			console.log("error in groupData", error);
 		}
@@ -25,20 +41,81 @@ function ChatLayout(props: any) {
 
 	React.useEffect(() => {
 		groupData();
+		const token = user.accessToken;
+		if (token) {
+			customSocket.current = socket(token);
+		}
+		return () => {
+			customSocket?.current?.off("connect");
+			customSocket?.current?.off("send_message");
+		};
 	}, []);
 
-  const logOut = async () => {
-    localStorage.clear();
-    navigate('/login');
-  }
+	const logOut = async () => {
+		localStorage.clear();
+		navigate("/login");
+	};
+
+	const sendMessage = (groupId: number, message: string) => {
+		customSocket?.current?.emit("send_message", {
+			groupId: groupId,
+			message: message,
+		});
+		setMessage("");
+	};
+
+	const getGroupsMessageData = async (id: any) => {
+		try {
+			const data = await getGroupsMessages(id);
+			if (data?.data) {
+				setGroupsMessage(data?.data);
+			}
+		} catch (error) {
+			console.log("error in getGroupsMessageData", error);
+		}
+	};
+
+	React.useEffect(() => {
+		if (activeGroup?.id) {
+			getGroupsMessageData(activeGroup?.id);
+		}
+	}, [activeGroup?.id]);
+
+	React.useEffect(() => {
+		if (customSocket?.current) {
+			customSocket?.current?.off("connect");
+			customSocket?.current.on("send_message_ack", (event: any) => {
+				if (event?.length) {
+					const concatenatedArray = [...groupMessage];
+					console.log("ecents", event);
+					event.forEach((ele: any) => {
+						concatenatedArray.push(ele);
+						// if(activeGroup?.id == ele?.groupId){
+
+						// }
+					});
+					setGroupsMessage(concatenatedArray);
+				}
+			});
+		}
+	}, [customSocket.current]);
 
 	return (
 		<>
 			<div className={styles["background-green"]}>
-				<div style={{ display: "flex", justifyContent: "space-between" ,padding:8}}>
+				<div
+					style={{
+						display: "flex",
+						justifyContent: "space-between",
+						padding: 8,
+					}}
+				>
 					{user && user.role === "admin" ? <div>Admin</div> : <div></div>}
 
-					<div style={{cursor:'pointer'}} onClick={logOut}>Logout</div>
+					<div style={{ cursor: "pointer" }} onClick={logOut}>
+						Logout
+					</div>
+					{/* modal designs here */}
 				</div>
 			</div>
 			<div className={styles["main-container"]}>
@@ -53,6 +130,7 @@ function ChatLayout(props: any) {
 							/>
 						</div>
 						<div style={{ fontSize: 12, padding: 5 }}>{user?.firstName}</div>
+						<AddIcon onClick={handleOpen} style={{cursor:'pointer'}}/>
 					</div>
 
 					{/* <!--search-container --> */}
@@ -66,18 +144,17 @@ function ChatLayout(props: any) {
 
 					{/* <!--chats --> */}
 					<div className={styles["chat-list"]}>
-            {
-              group && group.map((item:any)=>{
-                return(
-                  <GroupChat 
-                    name={item?.groupName}
-                    message={item?.message}
-                    onClick={()=>setActiveGroup(item)}
-                    active = {item.id === activeGroup.id}
-                  />
-                )
-              })
-            }
+						{group &&
+							group.map((item: any) => {
+								return (
+									<GroupChat
+										name={item?.groupName}
+										message={item?.message}
+										onClick={() => setActiveGroup(item)}
+										active={item.id === activeGroup.id}
+									/>
+								);
+							})}
 					</div>
 				</div>
 
@@ -93,9 +170,14 @@ function ChatLayout(props: any) {
 								/>
 							</div>
 							<h4>
-								Leo
+								<b>{activeGroup?.groupName}</b>
 								<br />
-								<span>Online</span>
+								<span style={{ fontSize: 10 }}>
+									{activeGroup
+										? moment(activeGroup?.createdDate).format("lll")
+										: null}
+								</span>
+								<br />
 							</h4>
 						</div>
 						<div className={styles["nav-icons"]}>
@@ -110,94 +192,63 @@ function ChatLayout(props: any) {
 
 					{/* <!--chat-container --> */}
 					<div className={styles["chat-container"]}>
-						<div className={`${styles["message-box"]} ${styles["my-message"]}`}>
-							<p>
-								I've been waiting to see that show asap!
-								<br />
-								<span>07:43</span>
-							</p>
-						</div>
-						<div
-							className={`${styles["message-box"]} ${styles["friend-message"]}`}
-						>
-							<p>
-								Ahh, I can't believe you do too!
-								<br />
-								<span>07:45</span>
-							</p>
-						</div>
-						<div
-							className={`${styles["message-box"]} ${styles["friend-message"]}`}
-						>
-							<p>
-								The trailer looks good
-								<br />
-								<span>07:45</span>
-							</p>
-						</div>
-						<div
-							className={`${styles["message-box"]} ${styles["friend-message"]}`}
-						>
-							<p>
-								I've been waiting to watch it!!
-								<br />
-								<span>07:45</span>
-							</p>
-						</div>
-						<div className={`${styles["message-box"]} ${styles["my-message"]}`}>
-							<p>
-								😐😐😐
-								<br />
-								<span>07:46</span>
-							</p>
-						</div>
-						<div className={`${styles["message-box"]} ${styles["my-message"]}`}>
-							<p>
-								Mee too! 😊
-								<br />
-								<span>07:46</span>
-							</p>
-						</div>
-						<div className={`${styles["message-box"]} ${styles["my-message"]}`}>
-							<p>
-								We should video chat to discuss, if you're up for it!
-								<br />
-								<span>07:48</span>
-							</p>
-						</div>
-						<div className={`${styles["message-box"]} ${styles["my-message"]}`}>
-							<p>
-								Sure
-								<br />
-								<span>07:48</span>
-							</p>
-						</div>
-						<div className={`${styles["message-box"]} ${styles["my-message"]}`}>
-							<p>
-								I'm free now!
-								<br />
-								<span>07:48</span>
-							</p>
-						</div>
-						<div
-							className={`${styles["message-box"]} ${styles["friend-message"]}`}
-						>
-							<p>
-								Awesome! I'll start a video chat with you in a few.
-								<br />
-								<span>07:49</span>
-							</p>
-						</div>
+						{groupMessage && groupMessage?.length
+							? groupMessage.map((item: any) => {
+									return (
+										<div
+											className={`${styles["message-box"]} ${
+												user.id === item.loginId
+													? styles["my-message"]
+													: styles["friend-message"]
+											}`}
+										>
+											<p>
+												{user.id != item.loginId ? (
+													<div style={{ textAlign: "left" }}>
+														<b>{item.firstName}</b>
+													</div>
+												) : null}
+												{item.message}
+												<br />
+												<span>{moment(item.createdDate).format("lll")}</span>
+											</p>
+										</div>
+									);
+							  })
+							: null}
 					</div>
 
 					{/* <!--input-bottom --> */}
 					<div className={styles["chatbox-input"]}>
-						<i className="fa-regular fa-face-grin"></i>
-						<i className="fa-sharp fa-solid fa-paperclip"></i>
-						<input type="text" placeholder="Type a message" />
-						<i className="fa-solid fa-microphone"></i>
+						{/* <i className="fa-regular fa-face-grin"></i>
+						<i className="fa-sharp fa-solid fa-paperclip"></i> */}
+						<input
+							type="text"
+							placeholder="Type a message"
+							value={message}
+							onChange={(e) => {
+								setMessage(e.target.value);
+							}}
+						/>
+						{/* <i className="fa-solid fa-microphone"></i> */}
+						{message ? (
+							<div
+								onClick={() => sendMessage(activeGroup.id, message)}
+								style={{
+									marginRight: 40,
+									cursor: "pointer",
+									background: "blue",
+									color: "white",
+									padding: "8px 16px",
+									borderRadius: "50%",
+								}}
+							>
+								send
+							</div>
+						) : null}
 					</div>
 				</div>
+				<Modal open={open} handleOpen={handleOpen} handleClose={handleClose} />
 			</div>
 		</>
 	);

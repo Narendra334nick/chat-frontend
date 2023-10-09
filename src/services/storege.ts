@@ -3,6 +3,6 @@ export const saveToLocalStore = async (key:string,data:any) =>{
 }
 
 export const getItemFromLocalStorage = async (key:string)=>{
-  const data = await localStorage.getItem(key);
+  const data =  localStorage.getItem(key);
   return data ? JSON.parse(data) : null;
 }
