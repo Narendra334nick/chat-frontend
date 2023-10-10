@@ -40,3 +40,13 @@ export const getUsers = async () => {
   const res = await axiosInstance.get(`/admin/user`);
   return res && res.data ? res.data : null;
 };
+
+export const createUser = async (data:any) => {
+  const res = await axiosInstance.post(`/admin`,data);
+  return res && res.data ? res.data : null;
+};
+
+export const updateUser = async (data:any) => {
+  const res = await axiosInstance.put(`/admin/updateUser`,data);
+  return res && res.data ? res.data : null;
+};

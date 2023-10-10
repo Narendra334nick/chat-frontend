@@ -2,8 +2,8 @@ import * as React from "react";
 import clsx from "clsx";
 import { styled, Box, Theme } from "@mui/system";
 import { Modal } from "@mui/base/Modal";
-import CancelIcon from '@mui/icons-material/Cancel';
-import { pink } from '@mui/material/colors';
+import CancelIcon from "@mui/icons-material/Cancel";
+import { pink } from "@mui/material/colors";
 
 export default function ModalUnstyled(props: any) {
 	const { open, handleOpen, handleClose } = props;
@@ -18,9 +18,14 @@ export default function ModalUnstyled(props: any) {
 				slots={{ backdrop: StyledBackdrop }}
 			>
 				<Box sx={style}>
-          <Box textAlign={'right'}><CancelIcon sx={{ color: pink[500] }} style={{cursor:'pointer'}} onClick={handleClose} /></Box>
-					<h2 id="unstyled-modal-title">Text in a modal</h2>
-					<p id="unstyled-modal-description">Aliquid amet deserunt earum!</p>
+					<Box textAlign={"right"}>
+						<CancelIcon
+							sx={{ color: pink[500] }}
+							style={{ cursor: "pointer" }}
+							onClick={handleClose}
+						/>
+					</Box>
+					{props.children}
 				</Box>
 			</StyledModal>
 		</div>
@@ -78,7 +83,8 @@ const StyledBackdrop = styled(Backdrop)`
 `;
 
 const style = (theme: Theme) => ({
-	width: 400,
+	width: 'auto',
+  height:'auto',
 	borderRadius: "12px",
 	padding: "16px 32px 24px 32px",
 	backgroundColor: theme.palette.mode === "dark" ? "#0A1929" : "white",
@@ -93,7 +99,7 @@ const TriggerButton = styled("button")(
   font-size: 0.875rem;
   font-weight: 600;
   box-sizing: border-box;
-  min-height: calc(1.5em + 22px);
+  max-height: 800px;
   border-radius: 12px;
   padding: 6px 12px;
   line-height: 1.5;
