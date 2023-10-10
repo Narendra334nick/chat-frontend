@@ -35,3 +35,8 @@ export const getGroupsMessages = async (id:Number) => {
   const res = await axiosInstance.get(`/groups/messages/${id}`);
   return res && res.data ? res.data : null;
 };
+
+export const getUsers = async () => {
+  const res = await axiosInstance.get(`/admin/user`);
+  return res && res.data ? res.data : null;
+};

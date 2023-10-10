@@ -100,6 +100,7 @@ function ChatLayout(props: any) {
 		}
 	}, [customSocket.current]);
 
+
 	return (
 		<>
 			<div className={styles["background-green"]}>
@@ -110,7 +111,7 @@ function ChatLayout(props: any) {
 						padding: 8,
 					}}
 				>
-					{user && user.role === "admin" ? <div>Admin</div> : <div></div>}
+					{user && user.role === "admin" ? <div style={{cursor:'pointer'}} onClick={()=>navigate('/admin')}>Admin</div> : <div></div>}
 
 					<div style={{ cursor: "pointer" }} onClick={logOut}>
 						Logout
